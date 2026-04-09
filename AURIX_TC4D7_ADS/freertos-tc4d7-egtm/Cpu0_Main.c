@@ -23,6 +23,8 @@
  * COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN 
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
  * IN THE SOFTWARE.
+ *
+ * SPDX-License-Identifier: BSL-1.0
  *********************************************************************************************************************/
 
 #include <FreeRTOS.h>
@@ -35,10 +37,7 @@
 #include "Cpu/Std/IfxCpu.h"
 #include "Wtu/Std/IfxWtu.h"
 
-#include "Egtm/Std/IfxEgtm.h"
-#include "Egtm/Std/IfxEgtm_Cmu.h"
-#include "Egtm/Std/IfxEgtm_Tom.h"
-#include "Src/Std/IfxSrc.h"
+#include "Egtm/Tom/Timer/IfxEgtm_Tom_Timer.h"
 
 #include "retarget_io/retarget_io.h"
 
@@ -53,9 +52,9 @@
 
 #define LED1_TOGGLE_PERIOD_MS           500U
 #define BUTTON_POLL_PERIOD_MS           20U
-#define TOM_TIMER_FREQUENCY_HZ          1UL
+#define TOM_TIMER_FREQUENCY_HZ          1.0f
 #define TOM_TIMER_ISR_PRIORITY          31
-#define TOM_TIMER_CLUSTER               ((IfxEgtm_Cluster)0)
+#define TOM_TIMER_CLUSTER               IfxEgtm_Cluster_0
 #define TOM_TIMER_CHANNEL               IfxEgtm_Tom_Ch_0
 
 
@@ -77,7 +76,7 @@ IFX_INTERRUPT(egtm_tom_timer_isr, 0, TOM_TIMER_ISR_PRIORITY);
 * Global Variables
 *******************************************************************************/
 static TaskHandle_t g_printTaskHandle = NULL;
-static Ifx_EGTM_CLS_TOM *g_tom = NULL;
+static IfxEgtm_Tom_Timer g_timerDriver;
 
 /*******************************************************************************
 * Function Name: core0_main
@@ -261,54 +260,27 @@ static void print_task(void *pvParameters)
 *******************************************************************************/
 static void init_egtm_tom_timer(void)
 {
-    float32 moduleFrequency;
-    float32 fxClockFrequency;
-    uint32 period;
-    volatile Ifx_SRC_SRCR *src;
-    Ifx_EGTM_CLS_TOM_TGC *tgc;
+    IfxEgtm_Tom_Timer_Config timerConfig;
 
+    /* Enable the eGTM module */
     IfxEgtm_enable(&MODULE_EGTM);
 
-    moduleFrequency = IfxEgtm_Cmu_getModuleFrequency(&MODULE_EGTM);
-    IfxEgtm_Cmu_setGclkFrequency(&MODULE_EGTM, moduleFrequency);
+    /* Initialize the timer configuration with defaults */
+    IfxEgtm_Tom_Timer_initConfig(&timerConfig, &MODULE_EGTM);
+
+    /* Configure the TOM timer channel, clock source, frequency, and interrupt */
+    timerConfig.cluster               = TOM_TIMER_CLUSTER;
+    timerConfig.timerChannel          = TOM_TIMER_CHANNEL;
+    timerConfig.clock                 = IfxEgtm_Tom_Ch_ClkSrc_cmuFxclk4;
+    timerConfig.frequency             = TOM_TIMER_FREQUENCY_HZ;
+    timerConfig.interrupt.isrPriority = TOM_TIMER_ISR_PRIORITY;
+    timerConfig.interrupt.isrProvider = IfxSrc_Tos_cpu0;
+    timerConfig.interrupt.vmId        = (IfxSrc_VmId)configVM_NR;
+
+    /* Enable the FXCLK chain, then initialize and start the TOM timer */
     IfxEgtm_Cmu_enableClocks(&MODULE_EGTM, IFXEGTM_CMU_CLKEN_FXCLK);
-
-    g_tom = &MODULE_EGTM.CLS[TOM_TIMER_CLUSTER].TOM;
-
-    IfxEgtm_Tom_Ch_setClockSource(g_tom,
-                                  TOM_TIMER_CHANNEL,
-                                  IfxEgtm_Tom_Ch_ClkSrc_cmuFxclk4);
-
-    fxClockFrequency = moduleFrequency / 32768.0f;
-    period = (uint32)(fxClockFrequency / (float32)TOM_TIMER_FREQUENCY_HZ);
-
-    IFX_ASSERT(IFX_VERBOSE_LEVEL_ERROR, (period > 0U) && (period <= 0xFFFFU));
-
-    IfxEgtm_Tom_Ch_setCompareZeroShadow(g_tom, TOM_TIMER_CHANNEL, (uint16)period);
-    IfxEgtm_Tom_Ch_setCounterValue(g_tom, TOM_TIMER_CHANNEL, 0U);
-    IfxEgtm_Tom_Ch_setTriggerOutput(g_tom,
-                                    TOM_TIMER_CHANNEL,
-                                    IfxEgtm_Tom_Ch_OutputTrigger_generate);
-    IfxEgtm_Tom_Ch_setNotification(g_tom,
-                                   TOM_TIMER_CHANNEL,
-                                   IfxEgtm_IrqMode_pulseNotify,
-                                   TRUE,
-                                   FALSE);
-
-    src = IfxEgtm_Tom_Ch_getSrcPointer(&MODULE_EGTM,
-                                       TOM_TIMER_CLUSTER,
-                                       TOM_TIMER_CHANNEL);
-    IfxSrc_init(src, IfxSrc_Tos_cpu0, (Ifx_Priority)TOM_TIMER_ISR_PRIORITY, (IfxSrc_VmId)configVM_NR);
-    IfxSrc_enable(src);
-
-    tgc = IfxEgtm_Tom_Ch_getTgcPointer(g_tom, 0U);
-
-    IfxEgtm_Tom_Tgc_setChannelsForceUpdate(tgc, 1U << 0, 0U, 0U, 0U);
-    IfxEgtm_Tom_Tgc_trigger(tgc);
-    IfxEgtm_Tom_Tgc_setChannelsForceUpdate(tgc, 0U, 1U << 0, 0U, 0U);
-
-    IfxEgtm_Tom_Ch_clearZeroNotification(g_tom, TOM_TIMER_CHANNEL);
-    IfxEgtm_Tom_Tgc_enableChannels(tgc, 1U << 0, 0U, TRUE);
+    IfxEgtm_Tom_Timer_init(&g_timerDriver, &timerConfig);
+    IfxEgtm_Tom_Timer_run(&g_timerDriver);
 }
 
 /*******************************************************************************
@@ -328,10 +300,8 @@ void egtm_tom_timer_isr(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    if (IfxEgtm_Tom_Ch_isZeroNotification(g_tom, TOM_TIMER_CHANNEL) != FALSE)
+    if (IfxEgtm_Tom_Timer_acknowledgeTimerIrq(&g_timerDriver) != FALSE)
     {
-        IfxEgtm_Tom_Ch_clearZeroNotification(g_tom, TOM_TIMER_CHANNEL);
-
         if (g_printTaskHandle != NULL)
         {
             vTaskNotifyGiveFromISR(g_printTaskHandle, &xHigherPriorityTaskWoken);
