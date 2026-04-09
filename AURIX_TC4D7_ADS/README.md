@@ -4,7 +4,7 @@
 
 ## Getting Started with FreeRTOS on AURIX™ TC4xx
 
-All the currently available examples/demos are based on the AURIX™ Development Studio limited(ADS-L), which includes a free built-in GCC compiler and debugger. The examples are built for the entry level AURIX™ TC4D7 Lite Kit but should run on any TC4xx device/hardware with minor changes. All demos use the Infineon Low Level Drivers (iLLDs), but a separate download is not required since they are included in ADS-L.
+All the currently available examples/demos are based on the AURIX™ Development Studio limited(ADS-L), which includes a free built-in GCC compiler and debugger. The examples are built for the entry level [AURIX™ TC4D7 Lite Kit](https://www.infineon.com/evaluation-board/KIT-A3G-TC4D7-LITE) but should run on any TC4xx device/hardware with minor changes. All demos use the [Infineon Low Level Drivers (iLLDs)](https://www.infineon.com/cms/en/tools/aurix-embedded-sw/aurix-illd-drivers/), but a separate download is not required since they are included in ADS-L.
 
 There are two demos available in this folder:
 
@@ -17,7 +17,7 @@ After startup, CPU0 initializes the board resources, prints a banner through the
 The main execution flow is:
 
 1. CPU0 enters `core0_main()`.
-2. Interrupts are enabled and the CPU/system watchdogs used by the demo are disabled.
+2. Interrupts are enabled and the watchdogs used by the demo are disabled.
 3. LED1 is configured as a push-pull output.
 4. ASCLIN0 is initialized as the debug UART at 115200 baud.
 5. A banner is printed over UART.
@@ -37,12 +37,6 @@ The runtime behavior is split as follows:
 - `print_task()` blocks on a task notification. The notification is sent by the eGTM TOM ISR once per second, and the task prints a status message over UART.  
 - `egtm_tom_timer_isr()` clears the TOM interrupt flag and wakes the print task using a FreeRTOS ISR-safe API.  
 
-
-
-## Device
-
-The device used in this project is AURIX TC4D7XP_A-Step_MC_COM.
-
 ## Board
 The board used in this project is the AURIX KIT_A3G_TC4D7_LITE.
 
@@ -58,18 +52,19 @@ This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is avai
 ## Hardware Setup
 - Connect the KIT_A3G_TC4D7_LITE board to the host PC
 - The port pins used for LEDs and the BUTTON are defined using macros in the file `middleware/bsp/kit_tc4d7_lite.h`.
-
-    #define BOARD_USER_LED_1       IfxPort_P03_9       /* Port/Pin for LED 1     */
+    ```C
+    #define BOARD_USER_LED_1       IfxPort_P03_9        /* Port/Pin for LED 1     */
     #define BOARD_USER_LED_2       IfxPort_P03_10       /* Port/Pin for LED 2     */
-    
     #define BOARD_USER_BUTTON_1    IfxPort_P03_11       /* Port/Pin for BUTTION 1 */
+    ```
 
 - The project initializes the debug UART in `Cpu0_Main.c` using `retarget_io_init( &BOARD_DEBUG_UART_TX, &BOARD_DEBUG_UART_RX, 115200 )` in `middleware/retarget_io/include/retarget_io/retarget_io.h`
 
 - The board debug UART pins are defined in `middleware/bsp/kit_tc4d7_lite.h` as:
-    
+    ```C
     #define BOARD_DEBUG_UART_RX       IfxAsclin0_RXA_F_P14_1_IN       
-    #define BOARD_DEBUG_UART_TX       IfxAsclin0_TX_F_P14_0_OUT       
+    #define BOARD_DEBUG_UART_TX       IfxAsclin0_TX_F_P14_0_OUT    
+    ```   
 
 - Open a serial terminal on the COM port associated with the board or your debug connection.
 - Use the following serial settings:
@@ -83,58 +78,45 @@ This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is avai
 ### 1. __File__ → __New__ → __New AURIX Project__, type in a name for the project and click "__Next__"
 <img src="Images/ads-new-project-0.png">
 <br>
-<br>
 <img src="Images/ads-new-project-1.png">
 
 ### 2. In the right column titled "__Board__", select the "__KIT_A3G_TC4D7_LITE__" and click "__Next__", in the popped-up window, click "__Finish__"
 <img src="Images/ads-new-project-2.png">
 <br>
-<br>
 <img src="Images/ads-new-project-3.png">
 
 ### 3. Go to the folder where the project was created and copy over the contents of any demo folder to the root of the project folder, e.g.
 - The project folder can be accessed as shown below...
-<br>
 <img src="Images/ads-new-project-4.png">
-<br>
-<br>
 - Opening the project folder will show something like this...
-<br>
 <img src="Images/ads-new-project-5.png">
-<br>
-<br>
 - Copy over the demo contents, for instance, the "__Blinky__" demo...
-<br>
 <img src="Images/ads-new-project-6.png">
-<br>
-<br>
-
 ### 4. Add the FreeRTOS Kernel and the corresponding AURIX™ TC4xx portables in a folder called "__freertos__". The AURIX™ TC4xx FreeRTOS port used for these demos is available in the ___GCC/AURIX_TC4xx___ folder in the [___Partner Supported Ports___ repository](https://github.com/FreeRTOS/FreeRTOS-Kernel-Partner-Supported-Ports)
 
 ### 5. Copy all files from `\FreeRTOS-Partner-Supported-Demos\AURIX_TC4D7_ADS\Configurations` and overwrite the `\Configurations\` folder in the ADS-L project.Ensure `Ifx_Cfg_Trap.h` has the following lines, before placing it in the folder.
 
-```
-extern int vPortSyscallHandler( unsigned char id );
-#define IFX_CFG_CPU_TRAP_SYSCALL_CPU0_HOOK(t) vPortSyscallHandler(t.tId)
-```
-
-### 6. The final directory structure should look, for example, something like this:
-<img src="./Images/ads-new-project-7.png">
-
-### 7. Open __AURIX™ Development Studio__ and refresh the project:
+    ```C
+    extern int vPortSyscallHandler( unsigned char id );
+    #define IFX_CFG_CPU_TRAP_SYSCALL_CPU0_HOOK(t) vPortSyscallHandler(t.tId)
+    ```
+### 6 Open __AURIX™ Development Studio__ and refresh the project:
 <img src="./Images/ads-new-project-8.png">
+
+### 7 The final project structure should look, for example, something like this:
+<img src="./Images/ads-new-project-7.png">
 
 ### 8. Select a heap implementation and exclude the rest from the build as shown below:
 <img src="./Images/ads-new-project-9.png">
 
 ## Build, Flash, and Debug
 
-- Compile the code using the _**Build Active Project**_ button (![](./images/build button.png)) in the toolbar or by right-clicking the project name and selecting _**Build Project**_ (if it is not already the active project, right click on the respective demo project and click ___Set Active Project___)
+- Compile the code using the _**Build Active Project**_ button (![](./Images/build button.png)) in the toolbar or by right-clicking the project name and selecting _**Build Project**_ (if it is not already the active project, right click on the respective demo project and click ___Set Active Project___)
 - Connect the lite kit to the PC using a micro-USB cable
-- Click the **Flash Active Project** button (<img src="./images/flash button.png"/>) to flash the elf file to the board.
-- Click the **Debug Active Project** button (<img src="./images/debug button.png"/>) to flash and debug the project. 
+- Click the **Flash Active Project** button (<img src="./Images/flash button.png"/>) to flash the elf file to the board.
+- Click the **Debug Active Project** button (<img src="./Images/debug button.png"/>) to flash and debug the project. 
 
-Once the debugger opens, the code will stop at a default startup breakpoint, click (<img src="./images/resume.png"/>) or press F8 to continue.
+Once the debugger opens, the code will stop at a default startup breakpoint, click (<img src="./Images/resume.png"/>) or press F8 to continue.
 
 ## Test Behavior
 `freertos-tc4d7-kernelport-tests`: This project is a FreeRTOS kernel port test application for the Infineon AURIX TC4D7 platform. It starts the test runner from Cpu0_Main.c, runs the selected FreeRTOS regression tests, and prints the consolidated test status through the board debug UART.
