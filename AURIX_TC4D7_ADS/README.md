@@ -8,7 +8,7 @@ All the currently available examples/demos are based on the AURIX™ Development
 
 There are two demos available in this folder:
 
-## Blinky_Printf
+## Blinky
 
 This project is a minimal FreeRTOS example for the AURIX&trade; TC4xx family using the GCC toolchain. It is intended to run on the AURIX&trade; KIT_A3G_TC4D7_LITE board and demonstrates that the startup software, board support package, FreeRTOS kernel, and TC4xx GCC port are integrated correctly.
 
@@ -27,15 +27,17 @@ The main execution flow is:
 The LED task delays for 500 ms and then toggles the LED output. As a result, the LED changes state every 500 ms, corresponding to a full blink cycle of about 1 second.
 
 ## Egtm_Printf
-In this example, one task was created to blink a LED cyclically and poll a user button and toggle the state of another LED whenever it's pressed. A second task blocks on `ulTaskNotifyTake(...)` and is notified from an eGTM TOM periodic interrupt to print a message over the debug UART.
-
+In this example, one task blinks LED1 every 500 ms and toggles LED2 on each BUTTON1 press, while a second task blocks on `ulTaskNotifyTake(...)` and is notified once per second from an eGTM TOM periodic interrupt to print a status message over the debug UART.
 
 The application entry point is implemented in `core0_main()` in `Cpu0_Main.c`. After disabling the watchdogs for demo purposes, the code initializes the board pins and the debug UART, creates two FreeRTOS tasks, configures an eGTM TOM timer, and starts the scheduler.  
 
-The runtime behavior is split as follows:  
-- `blinky_task()` runs periodically every 20 ms. It toggles LED1 every 500 ms and polls BUTTON1. Each new button press toggles LED2.  
-- `print_task()` blocks on a task notification. The notification is sent by the eGTM TOM ISR once per second, and the task prints a status message over UART.  
-- `egtm_tom_timer_isr()` clears the TOM interrupt flag and wakes the print task using a FreeRTOS ISR-safe API.  
+Runtime behavior:
+
+- `blinky_task` — Runs every 20 ms via `vTaskDelayUntil()`. Toggles LED1 every 500 ms. Polls BUTTON1 on each cycle and toggles LED2 on each new button press (rising-edge detection).
+
+- `print_task` — Blocks on `ulTaskNotifyTake()`. When notified by the eGTM TOM ISR (once per second), prints a status message over the debug UART.
+
+- `egtm_tom_timer_isr` — Acknowledges the TOM timer interrupt via `IfxEgtm_Tom_Timer_acknowledgeTimerIrq()` and wakes the print task using the ISR-safe FreeRTOS API (`vTaskNotifyGiveFromISR` + `portYIELD_FROM_ISR`).
 
 ## Board
 The board used in this project is the AURIX KIT_A3G_TC4D7_LITE.
@@ -52,19 +54,19 @@ This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is avai
 ## Hardware Setup
 - Connect the KIT_A3G_TC4D7_LITE board to the host PC
 - The port pins used for LEDs and the BUTTON are defined using macros in the file `middleware/bsp/kit_tc4d7_lite.h`.
-    ```C
-    #define BOARD_USER_LED_1       IfxPort_P03_9        /* Port/Pin for LED 1     */
-    #define BOARD_USER_LED_2       IfxPort_P03_10       /* Port/Pin for LED 2     */
-    #define BOARD_USER_BUTTON_1    IfxPort_P03_11       /* Port/Pin for BUTTION 1 */
-    ```
+```c
+#define BOARD_USER_LED_1       IfxPort_P03_9        /* Port/Pin for LED 1     */
+#define BOARD_USER_LED_2       IfxPort_P03_10       /* Port/Pin for LED 2     */
+#define BOARD_USER_BUTTON_1    IfxPort_P03_11       /* Port/Pin for BUTTION 1 */
+```
 
 - The project initializes the debug UART in `Cpu0_Main.c` using `retarget_io_init( &BOARD_DEBUG_UART_TX, &BOARD_DEBUG_UART_RX, 115200 )` in `middleware/retarget_io/include/retarget_io/retarget_io.h`
 
 - The board debug UART pins are defined in `middleware/bsp/kit_tc4d7_lite.h` as:
-    ```C
-    #define BOARD_DEBUG_UART_RX       IfxAsclin0_RXA_F_P14_1_IN       
-    #define BOARD_DEBUG_UART_TX       IfxAsclin0_TX_F_P14_0_OUT    
-    ```   
+```c
+#define BOARD_DEBUG_UART_RX       IfxAsclin0_RXA_F_P14_1_IN
+#define BOARD_DEBUG_UART_TX       IfxAsclin0_TX_F_P14_0_OUT
+```
 
 - Open a serial terminal on the COM port associated with the board or your debug connection.
 - Use the following serial settings:
@@ -86,20 +88,27 @@ This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is avai
 <img src="Images/ads-new-project-3.png">
 
 ### 3. Go to the folder where the project was created and copy over the contents of any demo folder to the root of the project folder, e.g.
-- The project folder can be accessed as shown below...
+a. The project folder can be accessed as shown below...
+<br>
 <img src="Images/ads-new-project-4.png">
-- Opening the project folder will show something like this...
+<br>
+b. Opening the project folder will show something like this...
+<br>
 <img src="Images/ads-new-project-5.png">
-- Copy over the demo contents, for instance, the "__Blinky__" demo...
+<br>
+c. Copy over the demo contents, for instance, the "__Blinky__" demo...
+<br>
 <img src="Images/ads-new-project-6.png">
+
 ### 4. Add the FreeRTOS Kernel and the corresponding AURIX™ TC4xx portables in a folder called "__freertos__". The AURIX™ TC4xx FreeRTOS port used for these demos is available in the ___GCC/AURIX_TC4xx___ folder in the [___Partner Supported Ports___ repository](https://github.com/FreeRTOS/FreeRTOS-Kernel-Partner-Supported-Ports)
 
-### 5. Copy all files from `\FreeRTOS-Partner-Supported-Demos\AURIX_TC4D7_ADS\Configurations` and overwrite the `\Configurations\` folder in the ADS-L project.Ensure `Ifx_Cfg_Trap.h` has the following lines, before placing it in the folder.
+### 5. Copy all files from `/FreeRTOS-Partner-Supported-Demos/AURIX_TC4D7_ADS/Configurations` and overwrite the `/Configurations/` folder in the ADS-L project. Ensure `Ifx_Cfg_Trap.h` has the following lines, before placing it in the folder:
 
-    ```C
-    extern int vPortSyscallHandler( unsigned char id );
-    #define IFX_CFG_CPU_TRAP_SYSCALL_CPU0_HOOK(t) vPortSyscallHandler(t.tId)
-    ```
+```c
+extern int vPortSyscallHandler( unsigned char id );
+#define IFX_CFG_CPU_TRAP_SYSCALL_CPU0_HOOK(t) vPortSyscallHandler(t.tId)
+```
+    
 ### 6 Open __AURIX™ Development Studio__ and refresh the project:
 <img src="./Images/ads-new-project-8.png">
 
@@ -111,7 +120,7 @@ This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is avai
 
 ## Build, Flash, and Debug
 
-- Compile the code using the _**Build Active Project**_ button (![](./Images/build button.png)) in the toolbar or by right-clicking the project name and selecting _**Build Project**_ (if it is not already the active project, right click on the respective demo project and click ___Set Active Project___)
+- Compile the code using the _**Build Active Project**_ button (<img src="./Images/build button.png"/>) in the toolbar or by right-clicking the project name and selecting _**Build Project**_ (if it is not already the active project, right click on the respective demo project and click ___Set Active Project___)
 - Connect the lite kit to the PC using a micro-USB cable
 - Click the **Flash Active Project** button (<img src="./Images/flash button.png"/>) to flash the elf file to the board.
 - Click the **Debug Active Project** button (<img src="./Images/debug button.png"/>) to flash and debug the project. 
