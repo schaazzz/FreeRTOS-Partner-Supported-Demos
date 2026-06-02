@@ -127,15 +127,11 @@ extern int vPortSyscallHandler( unsigned char id );
 
 Once the debugger opens, the code will stop at a default startup breakpoint, click (<img src="./Images/resume.png"/>) or press F8 to continue.
 
-## Test Behavior
-`freertos-tc4d7-kernelport-tests`: This project is a FreeRTOS kernel port test application for the Infineon AURIX TC4D7 platform. It starts the test runner from Cpu0_Main.c, runs the selected FreeRTOS regression tests, and prints the consolidated test status through the board debug UART.
+## Port Validation
 
-When the selected tests are running, the serial terminal prints:
-- `No errors`
-- `No errors`
-- `No errors`
+The TC4xx GCC FreeRTOS port was validated separately with the FreeRTOS kernel port tests on the AURIX TC4D7 Lite Kit. The kernel port test project used ADS-L/iLLD-generated project files and is not included in this demo contribution.
 
-The set of enabled tests is controlled through the `configSTART_*` macros in `FreeRTOSConfig.h`. This allows the regression tests to be executed individually or in selected groups.
+The selected FreeRTOS regression tests completed with the UART reporting `No errors`.
 
 ## References
 Official AWS Freertos Partner Supported Demo - AURIX_TC375_ADS: <https://github.com/FreeRTOS/FreeRTOS-Partner-Supported-Demos/tree/main/AURIX_TC375_ADS>
