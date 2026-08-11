@@ -1,16 +1,16 @@
 <img src="./Images/IFX_LOGO_600.gif" align="right" width="150" />
 
-# FreeRTOS GCC Port for Infineon AURIX™ TC4xx Devices
+# FreeRTOS Port for Infineon AURIX™ TC4xx Devices
 
 ## Getting Started with FreeRTOS on AURIX™ TC4xx
 
-All the currently available examples/demos are based on the AURIX™ Development Studio limited(ADS-L), which includes a free built-in GCC compiler and debugger. The examples are built for the entry level [AURIX™ TC4D7 Lite Kit](https://www.infineon.com/evaluation-board/KIT-A3G-TC4D7-LITE) but should run on any TC4xx device/hardware with minor changes. All demos use the [Infineon Low Level Drivers (iLLDs)](https://www.infineon.com/cms/en/tools/aurix-embedded-sw/aurix-illd-drivers/), but a separate download is not required since they are included in ADS-L.
+All the currently available examples/demos are based on the [AURIX™ Development Studio (ADS)](https://www.infineon.com/cms/en/product/promopages/aurix-development-studio/), which includes a free TASKING compiler, a free GCC compiler and debugger. The examples are built for the entry level [AURIX™ TC4D7 Lite Kit](https://www.infineon.com/evaluation-board/KIT-A3G-TC4D7-LITE) but should run on any TC4xx device/hardware with minor changes. All demos use the [Infineon Low Level Drivers (iLLDs)](https://www.infineon.com/cms/en/tools/aurix-embedded-sw/aurix-illd-drivers/), but a separate download is not required since they are included in ___AURIX™ Development Studio___.
 
 There are two demos available in this folder:
 
 ## Blinky
 
-This project is a minimal FreeRTOS example for the AURIX&trade; TC4xx family using the GCC toolchain. It is intended to run on the AURIX&trade; KIT_A3G_TC4D7_LITE board and demonstrates that the startup software, board support package, FreeRTOS kernel, and TC4xx GCC port are integrated correctly.
+This project is a minimal FreeRTOS example for the AURIX&trade; TC4xx family. It is intended to run on the AURIX&trade; KIT_A3G_TC4D7_LITE board and demonstrates that the startup software, board support package, FreeRTOS kernel, and TC4xx freertos port are integrated correctly.
 
 After startup, CPU0 initializes the board resources, prints a banner through the debug UART, creates one FreeRTOS task, and starts the scheduler. That task toggles the on-board user LED periodically, so the project acts as a simple bring-up and port-validation example.
 
@@ -49,7 +49,7 @@ Board user guide:
 - https://www.infineon.com/assets/row/public/documents/10/44/infineon-kit-a3g-tc4d7-lite-aurix-a3g-lite-kit-user-guide-usermanual-en.pdf
 
 ## Toolchain Setup
-This project is based on AURIX Development Studio Limited (ADS-L). ADS-L is available only for a restricted set of users. To request access to ADS-L, send an email to `ads@infineon.com`. Alternatively, ADS-L can also be requested and installed using the Infineon Developer Center Launcher.
+Download and install the latest version of ___AURIX™ Development Studio___ [from here](https://softwaretools.infineon.com/tools/com.ifx.tb.tool.aurixide) or install it using the [Infineon Developer Center Launcher](https://www.infineon.com/cms/en/design-support/tools/utilities/infineon-developer-center-idc-launcher/?redirId=102702)
 
 ## Hardware Setup
 - Connect the KIT_A3G_TC4D7_LITE board to the host PC
@@ -100,9 +100,9 @@ c. Copy over the demo contents, for instance, the "__Blinky__" demo...
 <br>
 <img src="Images/ads-new-project-6.png">
 
-### 4. Add the FreeRTOS Kernel and the corresponding AURIX™ TC4xx portables in a folder called "__freertos__". The AURIX™ TC4xx FreeRTOS port used for these demos is available in the ___GCC/AURIX_TC4xx___ folder in the [___Partner Supported Ports___ repository](https://github.com/FreeRTOS/FreeRTOS-Kernel-Partner-Supported-Ports)
+### 4. Add the FreeRTOS Kernel and the corresponding AURIX™ TC4xx portables in a folder called "__freertos__". The AURIX™ TC4xx FreeRTOS port used for these demos is available in the ___Tasking/AURIX_TC4xx___ folder or the ___GCC/AURIX_TC4xx___ folder in the [___Partner Supported Ports___ repository](https://github.com/FreeRTOS/FreeRTOS-Kernel-Partner-Supported-Ports). You can select either of them.
 
-### 5. Copy all files from `/FreeRTOS-Partner-Supported-Demos/AURIX_TC4D7_ADS/Configurations` and overwrite the `/Configurations/` folder in the ADS-L project. Ensure `Ifx_Cfg_Trap.h` has the following lines, before placing it in the folder:
+### 5. Copy all files from `/FreeRTOS-Partner-Supported-Demos/AURIX_TC4D7_ADS/Configurations` and overwrite the `/Configurations/` folder in the ADS project. Ensure `Ifx_Cfg_Trap.h` has the following lines, before placing it in the folder:
 
 ```c
 extern int vPortSyscallHandler( unsigned char id );
@@ -128,17 +128,10 @@ extern int vPortSyscallHandler( unsigned char id );
 Once the debugger opens, the code will stop at a default startup breakpoint, click (<img src="./Images/resume.png"/>) or press F8 to continue.
 
 ## Test Behavior
-`freertos-tc4d7-kernelport-tests`: This project is a FreeRTOS kernel port test application for the Infineon AURIX TC4D7 platform. It starts the test runner from Cpu0_Main.c, runs the selected FreeRTOS regression tests, and prints the consolidated test status through the board debug UART.
-
-When the selected tests are running, the serial terminal prints:
-- `No errors`
-- `No errors`
-- `No errors`
-
-The set of enabled tests is controlled through the `configSTART_*` macros in `FreeRTOSConfig.h`. This allows the regression tests to be executed individually or in selected groups.
+This port has been verified against the qualification checklist in the FreeRTOS Third-Party Template README. All required tests execute continuously without reporting an error on TC4D7 CPU0.
 
 ## References
-Official AWS Freertos Partner Supported Demo - AURIX_TC375_ADS: <https://github.com/FreeRTOS/FreeRTOS-Partner-Supported-Demos/tree/main/AURIX_TC375_ADS>
+Official AWS Freertos Partner Supported Demo - AURIX_TC4D7_ADS: <https://github.com/FreeRTOS/FreeRTOS-Partner-Supported-Demos/tree/main/AURIX_TC4D7_ADS>
 
 Introduction into the Board KIT_A3G_TC4D7_LITE: <https://www.infineon.com/assets/row/public/documents/10/44/infineon-kit-a3g-tc4d7-lite-aurix-a3g-lite-kit-user-guide-usermanual-en.pdf>
 
